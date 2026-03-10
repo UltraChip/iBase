@@ -85,9 +85,9 @@ def scanDB(db, aRoot):
     logging.info(f"Detected {len(files): ,} files.")
 
     for file in files:
-        if i % 1000 == 0:
+        if i % 10000 == 0:
             pct = i/len(files)
-            logging.info(f"Progress: {pct:.2%}%")
+            print(f"Progress: {pct:.2%}%")
         susDos  = parseDate(file)
 
         try:
@@ -181,6 +181,21 @@ def searchDB(db, searchterm):
     quit()
     return
 
+def purgeDB(db):
+    # Iterates through the database and purges the record of any file which no longer exists.
+    logging.info("PURGE MODE")
+    cursor = db.cursor()
+    cursor.execute("SELECT imid, filename FROM images;")
+    results = cursor.fetchall()
+    for row in results:
+        if not os.path.exists(row[1]):
+            cursor.execute("DELETE FROM images WHERE imid=?;", (row[0],))
+            logging.info(f"Removed IMID #{row[0]:<7} ({row[1]})")
+    cursor.close()
+    db.commit()
+    logging.info("PURGE COMPLETE")
+    return
+
 
 # INITIALIZATION
 conf  = loadConfig(cfile)
@@ -206,6 +221,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-r", "--album-root", help="Override the default album root in the config file")
 parser.add_argument("-s", "--scan", action="store_true", help="Scan for updates to the database")
 parser.add_argument("-f", "--find", help="Image search")
+parser.add_argument("-p", "--purge", action="store_true", help="Iterate through the database and purge records for files which no longer exist.")
 args = parser.parse_args()
 logging.info("INIT - Argument Parsing")
 
@@ -217,6 +233,8 @@ if args.scan:
     scanDB(db, aRoot)
 if args.find:
     searchDB(db, args.find)
+if args.purge:
+    purgeDB(db)
 
 print("No parameter specified.")
 quit()
