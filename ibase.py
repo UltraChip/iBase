@@ -9,6 +9,7 @@
 
 # IMPORTS AND CONSTANTS
 import os
+import shutil
 import sqlite3
 import ollama
 import hashlib
@@ -17,6 +18,7 @@ import time
 import argparse
 import logging
 import logging.config
+import random
 from configManager import loadConfig
 from tabulate import tabulate
 
@@ -181,10 +183,40 @@ def searchDB(db, searchterm):
     quit()
     return
 
+def draw(db):
+    # Draw a random image from the database
+    cursor = db.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM images;")
+    total = cursor.fetchone()[0]
+
+    pick = random.randint(1, total)
+    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags FROM images " \
+                   "ORDER BY imid LIMIT 1 OFFSET (? - 1);", (pick,))
+    record = cursor.fetchone()
+    try:
+        tstamp = datetime.datetime.fromtimestamp(float(record[2])).strftime('%B %d, %Y at %H:%M:%S')
+    except:
+        tstamp = ""
+
+    print(f"\n\nIMID      #{record[0]}")
+    print(f"Filename: {record[1]}\n")
+    print(f"Suspected Day of Shot: {tstamp}")
+    print(f"Suspected Duplicates:  {record[3]}\n")
+    print(f"Description:\n    {record[4]}\n")
+    print(f"Search tags: {record[5]}\n")
+
+    quit()
+    return
+
 def purgeDB(db):
     # Iterates through the database and purges the record of any file which no longer exists.
     logging.info("PURGE MODE")
     cursor = db.cursor()
+
+    shutil.copy(conf['dbfile'], f"{conf['dbfile']}.backup")
+    logging.info(f"Backed up database to {conf['dbfile']}.backup")
+
     cursor.execute("SELECT imid, filename FROM images;")
     results = cursor.fetchall()
     for row in results:
@@ -222,6 +254,8 @@ parser.add_argument("-r", "--album-root", help="Override the default album root 
 parser.add_argument("-s", "--scan", action="store_true", help="Scan for updates to the database")
 parser.add_argument("-f", "--find", help="Image search")
 parser.add_argument("-p", "--purge", action="store_true", help="Iterate through the database and purge records for files which no longer exist.")
+parser.add_argument("-y", "--sync", action="store_true", help="Perform a full database sync (purge and scan)")
+parser.add_argument("-d", "--draw", action="store_true", help="Draw a random image out of the database. For fun!")
 args = parser.parse_args()
 logging.info("INIT - Argument Parsing")
 
@@ -235,7 +269,14 @@ if args.find:
     searchDB(db, args.find)
 if args.purge:
     purgeDB(db)
+if args.sync:
+    logging.info("FULL SYNC - Will perform a purge followed by a scan.")
+    purgeDB(db)
+    scanDB(db, aRoot)
+if args.draw:
+    draw(db)
+else:
+    print("No parameter specified.")
 
-print("No parameter specified.")
 quit()
 

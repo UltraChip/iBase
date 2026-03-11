@@ -33,7 +33,15 @@ For basic keyword searches of the database you can use iBase itself with the -f 
 
 The search is case-insensitive.
 
-For more sophisticated queries you are free to search the database directly with sqlite3's native command line utility or any other DB utility you choose. 
+For more sophisticated queries you are free to search the database directly with sqlite3's native command line utility or any other DB utility you choose.
+
+Eventually, you are likely going to delete or move images in your album. When this happens, you will want to run a purge operation on the database to remove records which are no longer accurate.
+
+    $ python3 ibase.py -p
+
+There will be many times when you'll want to perform a complete synchronization of the database. In other words, purge records for no-longer-present files while also adding records for new ones. This can be accomplished with iBase's sYnc function;
+
+    $ python3 ibase.py -y
 
 ### Database Schema
 The database schema is pretty straightforward. There is only a single table, named "images", which has the following columns:
@@ -70,3 +78,6 @@ This section will probably get updated regularly as new features are added, but 
 | -r | --album-root | Override the default album root directory. |
 | -s | --scan       | Recursively scan all images in the album root and add any new images to the database. |
 | -f | --find       | Basic keyword search of the database. |
+| -p | --purge      | Iterate through the database and purge records for files which no longer exist. |
+| -y | --sYnc       | Perform a full database sync (purge and scan). |
+| -d | --draw       | Draw a random image out of the database. For fun!" |

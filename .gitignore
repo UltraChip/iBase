@@ -1,6 +1,7 @@
 *.code-workspace
 *.log
 *.db
+*.backup
 iBase.conf
 notes
 test/*
