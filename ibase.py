@@ -21,6 +21,7 @@ import logging.config
 import random
 from configManager import loadConfig
 from tabulate import tabulate
+from PIL import Image
 
 cfile = './iBase.conf'
 
@@ -90,6 +91,8 @@ def scanDB(db, aRoot):
         if i % 10000 == 0:
             pct = i/len(files)
             print(f"Progress: {pct:.2%}%")
+        if i % 100 == 0:
+            db.commit()
         susDos  = parseDate(file)
 
         try:
@@ -103,12 +106,12 @@ def scanDB(db, aRoot):
                 logging.info(f"Added {os.path.basename(file)} ({hashVal}) to the database.")
             else:
                 cursor.execute("UPDATE images SET susDOS=? WHERE filename=?;", (susDos, file))
-            db.commit()
         except Exception as e:
             logging.error(f"Unable to process {file}!")
             logging.error(f"Error: {e}")
         i += 1
 
+    db.commit()
     logging.info("SCAN COMPLETE. HAVE A NICE DAY")
     cursor.close()
     db.close()
@@ -141,14 +144,22 @@ def entryExists(filename, db):
     else:
         return False
 
-def findDupes(h, db):
+def findDupes(h, i, db):
     # Checks to see if there are any duplicate hashes already logged in the database. If yes, then
     # return a list of duplicate imids.
+    imids = ""
     cursor = db.cursor()
     cursor.execute("SELECT imid FROM images WHERE hash=?", (h,))
-    imids = cursor.fetchall()
+    results = cursor.fetchall()
     cursor.close()
-    return str(imids)[1:-1]
+
+    for result in results:
+        if imids == "":
+            imids = result[0]
+        else:
+            imids = f"{imids}, {result[0]}"
+
+    return imids
 
 def parseDate(lfile):
     # If the filename has a recognizable naming convention based on the date/time the photo was
@@ -205,6 +216,11 @@ def draw(db):
     print(f"Suspected Duplicates:  {record[3]}\n")
     print(f"Description:\n    {record[4]}\n")
     print(f"Search tags: {record[5]}\n")
+    try:
+        with Image.open(record[1]) as pic:
+            pic.show()
+    except:
+        pass
 
     quit()
     return
@@ -228,55 +244,56 @@ def purgeDB(db):
     logging.info("PURGE COMPLETE")
     return
 
+if __name__ == "__main__":
+    # INITIALIZATION
+    conf  = loadConfig(cfile)
+    aRoot = conf['albumRoot']
 
-# INITIALIZATION
-conf  = loadConfig(cfile)
-aRoot = conf['albumRoot']
+    logging.config.dictConfig({    # This block silences log spam from imported modules so that only
+        'version': 1,              # my own log messages get recorded.
+        'disable_existing_loggers': True,
+    })
+    logging.basicConfig(
+        level=conf['loglevel'],
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(conf['logfile'], mode='a'),
+            logging.StreamHandler()])
+    logging.info("INIT - Logger")
 
-logging.config.dictConfig({    # This block silences log spam from imported modules so that only
-    'version': 1,              # my own log messages get recorded.
-    'disable_existing_loggers': True,
-})
-logging.basicConfig(
-    level=conf['loglevel'],
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler(conf['logfile'], mode='a'),
-        logging.StreamHandler()])
-logging.info("INIT - Logger")
+    initDB(conf['dbfile'])
+    db = sqlite3.connect(conf['dbfile'])
+    logging.info(f"INIT - Database")
 
-initDB(conf['dbfile'])
-db = sqlite3.connect(conf['dbfile'])
-logging.info(f"INIT - Database")
-
-parser = argparse.ArgumentParser()
-parser.add_argument("-r", "--album-root", help="Override the default album root in the config file")
-parser.add_argument("-s", "--scan", action="store_true", help="Scan for updates to the database")
-parser.add_argument("-f", "--find", help="Image search")
-parser.add_argument("-p", "--purge", action="store_true", help="Iterate through the database and purge records for files which no longer exist.")
-parser.add_argument("-y", "--sync", action="store_true", help="Perform a full database sync (purge and scan)")
-parser.add_argument("-d", "--draw", action="store_true", help="Draw a random image out of the database. For fun!")
-args = parser.parse_args()
-logging.info("INIT - Argument Parsing")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-r", "--album-root", help="Override the default album root in the config file")
+    parser.add_argument("-s", "--scan", action="store_true", help="Scan for updates to the database")
+    parser.add_argument("-f", "--find", help="Image search")
+    parser.add_argument("-p", "--purge", action="store_true", help="Iterate through the database and purge records for files which no longer exist.")
+    parser.add_argument("-y", "--sync", action="store_true", help="Perform a full database sync (purge and scan)")
+    parser.add_argument("-d", "--draw", action="store_true", help="Draw a random image out of the database. For fun!")
+    args = parser.parse_args()
+    logging.info("INIT - Argument Parsing")
 
 
-# MAIN
-if args.album_root:
-    aRoot = args.album_root
-if args.scan:
-    scanDB(db, aRoot)
-if args.find:
-    searchDB(db, args.find)
-if args.purge:
-    purgeDB(db)
-if args.sync:
-    logging.info("FULL SYNC - Will perform a purge followed by a scan.")
-    purgeDB(db)
-    scanDB(db, aRoot)
-if args.draw:
-    draw(db)
-else:
-    print("No parameter specified.")
+    # MAIN
+    if args.album_root:
+        aRoot = args.album_root
+    if args.scan:
+        scanDB(db, aRoot)
+    if args.find:
+        searchDB(db, args.find)
+    if args.purge:
+        purgeDB(db)
+        quit()
+    if args.sync:
+        logging.info("FULL SYNC - Will perform a purge followed by a scan.")
+        purgeDB(db)
+        scanDB(db, aRoot)
+    if args.draw:
+        draw(db)
+    else:
+        print("No parameter specified.")
 
-quit()
+    quit()
 
