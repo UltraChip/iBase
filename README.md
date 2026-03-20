@@ -51,10 +51,13 @@ The database schema is pretty straightforward. There is only a single table, nam
 | imid     | INTEGER PRIMARY KEY | Unique ID number for each image |
 | filename | TEXT UNIQUE         | The full file name and path of the image |
 | hash     | TEXT                | An MD5 hash of the image. Used for indentifying duplicate images |
-| dupeOf   | TEXT                | If iBase detects an image is a duplicate of others, the IMIDs of those images are stored here |
+| dupeOf   | TEXT                | If iBase detects an image is a duplicate of others, the IMIDs of the suspected duplicates are stored here |
 | susDOS   | TEXT                | "Suspected Day of Shot". If iBase is able to parse the date/time an image was captured from its file name, it will be recorded here as a UNIX timestamp |
 | desc     | TEXT                | An LLM-generated description of the image |
-| tags     | TEXT                | An LLM-generated list of search tags. Comma-separated | 
+| tags     | TEXT                | An LLM-generated list of search tags. Comma-separated |
+| width    | INTEGER             | The width of the image in pixels |
+| height   | INTEGER             | The height of the image in pixels |
+| fSize    | INTEGER             | The size of the image in bytes |
 
 ### Configuration
 Below are the options available to edit in iBase.conf. The file itself is essentially a JSON object, but with the added benefit that inline comments are supported. 

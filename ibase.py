@@ -54,7 +54,10 @@ def initDB(filename):
                         dupeOf TEXT,
                         susDOS TEXT,
                         desc TEXT,
-                        tags TEXT);"""
+                        tags TEXT,
+                        width INTEGER,
+                        height INTEGER,
+                        fSize INTEGER);"""
         cursor.execute(tab_images)
         cursor.close()
         db.commit()
@@ -93,7 +96,9 @@ def scanDB(db, aRoot):
             print(f"Progress: {pct:.2%}%")
         if i % 100 == 0:
             db.commit()
-        susDos  = parseDate(file)
+
+        susDos = parseDate(file)
+        fSize  = os.path.getsize(file)
 
         try:
             if not entryExists(file, db):
@@ -101,11 +106,20 @@ def scanDB(db, aRoot):
                 dupeOf  = findDupes(hashVal, db)
                 desc    = callAI(file, dPrompt)
                 tags    = callAI(file, tPrompt).upper()
-                cursor.execute("INSERT OR IGNORE INTO images (filename, hash, dupeOf, susDOS, desc, tags) VALUES (?,?,?,?,?,?);", 
-                            (file, hashVal, dupeOf, susDos, desc, tags))
+                try:
+                    with Image.open(file) as img:
+                        width, height = img.size
+                except Exception as e:
+                    width, height = 0, 0
+                    logging.error(f"Unable to open {file} for size assessment.")
+                    logging.error(e)
+
+                cursor.execute("INSERT OR IGNORE INTO images " \
+                               "(filename, hash, dupeOf, susDOS, desc, tags, width, height, fSize) " \
+                                "VALUES (?,?,?,?,?,?,?,?,?);", (file, hashVal, dupeOf, susDos, desc, tags, width, height, fSize))
                 logging.info(f"Added {os.path.basename(file)} ({hashVal}) to the database.")
             else:
-                cursor.execute("UPDATE images SET susDOS=? WHERE filename=?;", (susDos, file))
+                cursor.execute("UPDATE images SET susDOS=?, fSize=? WHERE filename=?;", (susDos, fSize, file))
         except Exception as e:
             logging.error(f"Unable to process {file}!")
             logging.error(f"Error: {e}")
@@ -144,7 +158,7 @@ def entryExists(filename, db):
     else:
         return False
 
-def findDupes(h, i, db):
+def findDupes(h, db):
     # Checks to see if there are any duplicate hashes already logged in the database. If yes, then
     # return a list of duplicate imids.
     imids = ""
@@ -202,7 +216,7 @@ def draw(db):
     total = cursor.fetchone()[0]
 
     pick = random.randint(1, total)
-    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags FROM images " \
+    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize FROM images " \
                    "ORDER BY imid LIMIT 1 OFFSET (? - 1);", (pick,))
     record = cursor.fetchone()
     try:
@@ -210,8 +224,10 @@ def draw(db):
     except:
         tstamp = ""
 
-    print(f"\n\nIMID      #{record[0]}")
-    print(f"Filename: {record[1]}\n")
+    print(f"\n\nIMID      #{record[0]}\n")
+    print(f"Filename:   {record[1]}")
+    print(f"File Size:  {(record[8]/1024):.2f} KB")
+    print(f"Resolution: {record[6]} x {record[7]}\n")
     print(f"Suspected Day of Shot: {tstamp}")
     print(f"Suspected Duplicates:  {record[3]}\n")
     print(f"Description:\n    {record[4]}\n")
@@ -248,6 +264,8 @@ if __name__ == "__main__":
     # INITIALIZATION
     conf  = loadConfig(cfile)
     aRoot = conf['albumRoot']
+
+    Image.MAX_IMAGE_PIXELS = None  # Disables PIL's compression bomb detection
 
     logging.config.dictConfig({    # This block silences log spam from imported modules so that only
         'version': 1,              # my own log messages get recorded.
