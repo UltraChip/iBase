@@ -19,7 +19,7 @@ import argparse
 import logging
 import logging.config
 import random
-from configManager import loadConfig
+from lib.configManager import loadConfig
 from tabulate import tabulate
 from PIL import Image
 
@@ -58,7 +58,13 @@ def initDB(filename):
                         width INTEGER,
                         height INTEGER,
                         fSize INTEGER);"""
+        tab_crawler = """CREATE TABLE crawler (
+                         wid INTEGER PRIMARY KEY,
+                         word TEXT,
+                         score INTEGER,
+                         linked TEXT);"""
         cursor.execute(tab_images)
+        cursor.execute(tab_crawler)
         cursor.close()
         db.commit()
         db.close()
