@@ -19,6 +19,7 @@ import argparse
 import logging
 import logging.config
 import random
+import lib.sengine as sengine
 from lib.configManager import loadConfig
 from tabulate import tabulate
 from PIL import Image
@@ -294,7 +295,8 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--scan", action="store_true", help="Scan for updates to the database")
     parser.add_argument("-f", "--find", help="Image search")
     parser.add_argument("-p", "--purge", action="store_true", help="Iterate through the database and purge records for files which no longer exist.")
-    parser.add_argument("-y", "--sync", action="store_true", help="Perform a full database sync (purge and scan)")
+    parser.add_argument("-i", "--index", action="store_true", help="Refresh the search index")
+    parser.add_argument("-y", "--sync", action="store_true", help="Perform a full database sync (purge, scan, and re-index)")
     parser.add_argument("-d", "--draw", action="store_true", help="Draw a random image out of the database. For fun!")
     args = parser.parse_args()
     logging.info("INIT - Argument Parsing")
@@ -310,10 +312,15 @@ if __name__ == "__main__":
     if args.purge:
         purgeDB(db)
         quit()
+    if args.index:
+        logging.info("INDEXING - Refreshing the search index.")
+        sengine.crawler(db)
+        quit()
     if args.sync:
-        logging.info("FULL SYNC - Will perform a purge followed by a scan.")
+        logging.info("FULL SYNC - Will perform a purge, scan, and re-index.")
         purgeDB(db)
         scanDB(db, aRoot)
+        sengine.crawler(db)
     if args.draw:
         draw(db)
     else:
