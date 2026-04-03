@@ -49,20 +49,22 @@ def initDB(filename):
         db = sqlite3.connect(filename)
         cursor = db.cursor()
         tab_images = """CREATE TABLE images (
-                        imid INTEGER PRIMARY KEY,
+                        imid     INTEGER PRIMARY KEY,
                         filename TEXT UNIQUE,
-                        hash TEXT,
-                        dupeOf TEXT,
-                        susDOS TEXT,
-                        desc TEXT,
-                        tags TEXT,
-                        width INTEGER,
-                        height INTEGER,
-                        fSize INTEGER);"""
+                        hash     TEXT,
+                        dupeOf   TEXT,
+                        susDOS   TEXT,
+                        desc     TEXT,
+                        tags     TEXT,
+                        width    INTEGER,
+                        height   INTEGER,
+                        fSize    INTEGER,
+                        wCount   INTEGER,
+                        freeText TEXT);"""
         tab_crawler = """CREATE TABLE crawler (
-                         wid INTEGER PRIMARY KEY,
-                         word TEXT,
-                         score INTEGER,
+                         wid    INTEGER PRIMARY KEY,
+                         word   TEXT,
+                         score  INTEGER,
                          linked TEXT);"""
         cursor.execute(tab_images)
         cursor.execute(tab_crawler)

@@ -9,7 +9,9 @@
 import sqlite3
 import re
 import json
+
 from configManager import loadConfig
+from math import log
 
 conf      = './iBase.conf'
 blacklist = [' ', 'THE', 'A', 'AN', 'OF', 'IN', 'ON', 'IS', 'AND', 'OR', 'JPG', 'JPEG', 'PNG',
@@ -32,6 +34,8 @@ def crawler(db):
         tags = normalize(image[3])
         sstr = f"{file} {desc} {tags}".split(' ')
 
+        cursor.execute("UPDATE images SET wCount=? WHERE imid=? AND wCount<>?;", 
+                       (len(sstr), imid, len(sstr),))
         for word in sstr:
             if word not in blacklist:
                 if word in words:
@@ -63,9 +67,28 @@ def crawler(db):
     cursor.close()
     return
 
-def search(query):
+def search(query, db):
     # Searches through the database according to query and returns a list of relevant imids,
     # ordered from most to least relevant.
+    cursor  = db.cursor()
+    sTable  = {}
+    terms   = normalize(query).split(' ')
+    tImages = cursor.execute("SELECT COUNT(*) FROM images;").fetchone()[0]
+    qWord   = "SELECT score, linked FROM crawler WHERE word=?;"
+    qCount  = "SELECT wCount        FROM images  WHERE imid=?;"
+
+    for term in terms:
+        if term not in blacklist:
+            word   = cursor.execute(qWord, (term,)).fetchone()
+            wScore = word[0]
+            linked = json.loads(word[1])
+            for image in linked:
+                wCount = cursor.execute(qCount, (image,)).fetchone()[0]
+                tf     = linked[image] / wCount
+                idf    = log(tImages / len(linked))
+                rScore = tf * idf
+                sTable[image] = rScore
+
     return imids
 
 def normalize(content):
