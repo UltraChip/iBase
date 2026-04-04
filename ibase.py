@@ -64,7 +64,6 @@ def initDB(filename):
         tab_crawler = """CREATE TABLE crawler (
                          wid    INTEGER PRIMARY KEY,
                          word   TEXT,
-                         score  INTEGER,
                          linked TEXT);"""
         cursor.execute(tab_images)
         cursor.execute(tab_crawler)
@@ -135,10 +134,8 @@ def scanDB(db, aRoot):
         i += 1
 
     db.commit()
-    logging.info("SCAN COMPLETE. HAVE A NICE DAY")
+    logging.info("SCAN COMPLETE.")
     cursor.close()
-    db.close()
-    quit()
     return
 
 def callAI(file, prompt):
@@ -205,15 +202,15 @@ def parseDate(lfile):
 
 def searchDB(db, searchterm):
     # Search the database for images that match the search term
-    cursor = db.cursor()
-    query  = "SELECT imid, filename, desc, tags FROM images WHERE tags LIKE ?;"
-    table  = [["ID #", "File Path", "Description", "Tags"]]
+    cursor  = db.cursor()
+    table   = [["IMID", "File Path", "Description"]]
+    results = sengine.search(searchterm, db)
 
-    cursor.execute(query, ('%' + searchterm.upper() + '%',))
-    results = cursor.fetchall()
-    for row in results:
-        table.append([row[0], row[1], row[2], row[3]])
-    print(tabulate(table, headers='firstrow', tablefmt='grid', maxcolwidths=[None, 30, 50, 15]))
+    for image in results:
+        record = cursor.execute("SELECT imid, filename, desc FROM images WHERE imid=?;", 
+                                (image,)).fetchone()
+        table.append([record[0], record[1], record[2]])
+    print(tabulate(table, headers='firstrow', tablefmt='grid', maxcolwidths=[None, 30, 50]))
     quit()
     return
 
@@ -309,24 +306,26 @@ if __name__ == "__main__":
         aRoot = args.album_root
     if args.scan:
         scanDB(db, aRoot)
+        print("HAVE A NICE DAY 😎")
     if args.find:
         searchDB(db, args.find)
     if args.purge:
         purgeDB(db)
+        print("HAVE A NICE DAY 😎")
         quit()
     if args.index:
-        logging.info("INDEXING - Refreshing the search index.")
         sengine.crawler(db)
+        print("HAVE A NICE DAY 😎")
         quit()
     if args.sync:
         logging.info("FULL SYNC - Will perform a purge, scan, and re-index.")
         purgeDB(db)
         scanDB(db, aRoot)
         sengine.crawler(db)
+        print("SYNC COMPLETE. HAVE A NICE DAY 😎")
     if args.draw:
         draw(db)
-    else:
-        print("No parameter specified.")
-
+    
+    db.close()
     quit()
 
