@@ -19,45 +19,40 @@ blacklist = [ ' ', 'THE', 'A', 'AN', 'OF', 'IN', 'ON', 'IS', 'AND', 'OR', 'JPG',
 def crawler(db):
     # Crawler function to index images in the db.
     print("INDEX MODE")
-    i, w  = 1, 1
     cursor = db.cursor()
-    cursor.execute("SELECT imid, filename, desc, tags FROM images;")
+    
+    cursor.execute("SELECT word, linked FROM crawler")
+    cTable = {row[0]: json.loads(row[1]) for row in cursor.fetchall()}
+    cursor.execute("SELECT imid, filename, desc, tags, wCount FROM images;")
     images = cursor.fetchall()
+    tImages = len(images)
 
-    for image in images:
-        imid  = str(image[0])  # Holy crap it took me forever to realize I need to explicity make
-        words = {}             # this a string!
-        file  = normalize(image[1])
-        desc  = normalize(image[2])
-        tags  = normalize(image[3])
-        sstr  = f"{file} {desc} {tags}".split(' ')
+    for i, image in enumerate(images, 1):
+        imid    = str(image[0])
+        rawText = f"{image[1]} {image[2]} {image[3]}"
+        sstr    = normalize(rawText).split(' ')
+        wCount  = len(sstr)
+        
+        if image[4] != wCount:
+            cursor.execute("UPDATE images SET wCount=? WHERE imid=?", (wCount, imid))
 
-        cursor.execute("UPDATE images SET wCount=? WHERE imid=? AND (wCount IS NULL OR wCount<>?);", 
-                       (len(sstr), imid, len(sstr),))
+        words = {}
         for word in sstr:
-            if word not in blacklist:
-                if word in words:
-                    words[word] += 1
-                else:
-                    words[word] = 1
+            if word not in blacklist and word:
+                words[word] = words.get(word, 0) + 1
         
         for word, count in words.items():
-            if w % 500 == 0:
-                db.commit()
-                print(f"Indexing {(i/len(images))*100:.2f}% complete.")
-            cursor.execute("SELECT * FROM crawler WHERE word = ?;", (word,))
-            result = cursor.fetchone()
-            if result:
-                linked = json.loads(result[2])
-                linked[imid] = count
-                cursor.execute("UPDATE crawler SET linked=? WHERE wid=?;", 
-                                   (json.dumps(linked), result[0],))
-            else:
-                linked = {imid: count}
-                cursor.execute("INSERT OR IGNORE INTO crawler (word, linked) VALUES (?, ?);",
-                               (word, json.dumps(linked),))
-            w += 1
-        i += 1
+            if word not in cTable:
+                cTable[word] = {}
+            cTable[word][imid] = count
+
+        if i % 1000 == 0:
+            print(f"Indexing {(i/tImages)*100:.2f}% complete.")
+
+    finalCData = [(word, json.dumps(linked)) for word, linked in cTable.items()]
+    cursor.execute("DELETE FROM crawler")
+    cursor.executemany("INSERT INTO crawler (word, linked) VALUES (?, ?)", finalCData)
+    
     db.commit()
     cursor.close()
     print("INDEXING COMPLETE")
@@ -75,8 +70,9 @@ def search(query, db):
 
     for term in terms:
         if term not in blacklist:
-            linked = json.loads(cursor.execute(qWord, (term,)).fetchone()[0])
-            if linked:
+            dLinked = cursor.execute(qWord, (term,)).fetchone()
+            if dLinked:
+                linked = json.loads(dLinked[0])
                 for image, count in linked.items():
                     wCount = cursor.execute(qCount, (image,)).fetchone()[0]
                     tf     = linked[image] / wCount

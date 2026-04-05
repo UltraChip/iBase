@@ -204,13 +204,14 @@ def searchDB(db, searchterm):
     # Search the database for images that match the search term
     cursor  = db.cursor()
     table   = [["IMID", "File Path", "Description"]]
-    results = sengine.search(searchterm, db)
+    results = sengine.search(searchterm, db)[:conf['results']]
 
-    for image in results:
-        record = cursor.execute("SELECT imid, filename, desc FROM images WHERE imid=?;", 
-                                (image,)).fetchone()
-        table.append([record[0], record[1], record[2]])
-    print(tabulate(table, headers='firstrow', tablefmt='grid', maxcolwidths=[None, 30, 50]))
+    if results:
+        for image in results:
+            record = cursor.execute("SELECT imid, filename, desc FROM images WHERE imid=?;", 
+                                    (image,)).fetchone()
+            table.append([record[0], record[1], record[2]])
+        print(tabulate(table, headers='firstrow', tablefmt='grid', maxcolwidths=[None, 30, 50]))
     quit()
     return
 
