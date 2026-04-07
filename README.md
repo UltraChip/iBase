@@ -43,44 +43,10 @@ There will be many times when you'll want to perform a complete synchronization 
 
     $ python3 ibase.py -y
 
-### Database Schema
-The database schema is pretty straightforward. There is only a single table, named "images", which has the following columns:
+For a full rundown on the rest of the command-line arguments available to you look at the [complete arguments table](docs/args.md) in the docs directory.
 
-| Column   | Data Type           | Description |
-|----------|---------------------|-------------|
-| imid     | INTEGER PRIMARY KEY | Unique ID number for each image |
-| filename | TEXT UNIQUE         | The full file name and path of the image |
-| hash     | TEXT                | An MD5 hash of the image. Used for indentifying duplicate images |
-| dupeOf   | TEXT                | If iBase detects an image is a duplicate of others, the IMIDs of the suspected duplicates are stored here |
-| susDOS   | TEXT                | "Suspected Day of Shot". If iBase is able to parse the date/time an image was captured from its file name, it will be recorded here as a UNIX timestamp |
-| desc     | TEXT                | An LLM-generated description of the image |
-| tags     | TEXT                | An LLM-generated list of search tags. Comma-separated |
-| width    | INTEGER             | The width of the image in pixels |
-| height   | INTEGER             | The height of the image in pixels |
-| fSize    | INTEGER             | The size of the image in bytes |
+### Database Schema
+Full details on the database schema can be found in [docs/database.md](docs/database.md).
 
 ### Configuration
-Below are the options available to edit in iBase.conf. The file itself is essentially a JSON object, but with the added benefit that inline comments are supported. 
-
-| Option    | Example Setting    | Description |
-|-----------|--------------------|-------------|
-| albumRoot | /home/bob/Pictures | The root directory where your pictures are kept. iBase will scan this directory and any nested directories within in. |
-| dbfile    | ./iBase.db         | The path and name of the generated database file. |
-| logfile   | ./iBase.log        | The path and name of the log file. |
-| loglevel  | ERROR              | The verbosity level of the logging system. Recommend either ERROR for just error messages or INFO for full verbosity. |
-| llmHost   | localhost:11434    | The host and port of your Ollama server. |
-| llmModel  | gemma3:12b         | The LLM model to use for scanning. | 
-| llmTries  | 3                  | The number of times iBase will attempt to call Ollama for a given image before erroring out and moving on. |
-
-### Command-line Parameters
-This section will probably get updated regularly as new features are added, but this is the list of what command-line options are available.
-
-| Short | Long | Description |
-|----|--------------|-------------|
-| -h | --help       | Show usage information and exit. |
-| -r | --album-root | Override the default album root directory. |
-| -s | --scan       | Recursively scan all images in the album root and add any new images to the database. |
-| -f | --find       | Basic keyword search of the database. |
-| -p | --purge      | Iterate through the database and purge records for files which no longer exist. |
-| -y | --sYnc       | Perform a full database sync (purge and scan). |
-| -d | --draw       | Draw a random image out of the database. For fun!" |
+Full details on the configuration of iBase can be found in [docs/config.md](docs/config.md).

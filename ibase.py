@@ -19,7 +19,8 @@ import argparse
 import logging
 import logging.config
 import random
-from configManager import loadConfig
+import lib.sengine as sengine
+from lib.configManager import loadConfig
 from tabulate import tabulate
 from PIL import Image
 
@@ -48,17 +49,24 @@ def initDB(filename):
         db = sqlite3.connect(filename)
         cursor = db.cursor()
         tab_images = """CREATE TABLE images (
-                        imid INTEGER PRIMARY KEY,
+                        imid     INTEGER PRIMARY KEY,
                         filename TEXT UNIQUE,
-                        hash TEXT,
-                        dupeOf TEXT,
-                        susDOS TEXT,
-                        desc TEXT,
-                        tags TEXT,
-                        width INTEGER,
-                        height INTEGER,
-                        fSize INTEGER);"""
+                        hash     TEXT,
+                        dupeOf   TEXT,
+                        susDOS   TEXT,
+                        desc     TEXT,
+                        tags     TEXT,
+                        width    INTEGER,
+                        height   INTEGER,
+                        fSize    INTEGER,
+                        wCount   INTEGER,
+                        freeText TEXT);"""
+        tab_crawler = """CREATE TABLE crawler (
+                         wid    INTEGER PRIMARY KEY,
+                         word   TEXT,
+                         linked TEXT);"""
         cursor.execute(tab_images)
+        cursor.execute(tab_crawler)
         cursor.close()
         db.commit()
         db.close()
@@ -126,10 +134,8 @@ def scanDB(db, aRoot):
         i += 1
 
     db.commit()
-    logging.info("SCAN COMPLETE. HAVE A NICE DAY")
+    logging.info("SCAN COMPLETE.")
     cursor.close()
-    db.close()
-    quit()
     return
 
 def callAI(file, prompt):
@@ -196,15 +202,16 @@ def parseDate(lfile):
 
 def searchDB(db, searchterm):
     # Search the database for images that match the search term
-    cursor = db.cursor()
-    query  = "SELECT imid, filename, desc, tags FROM images WHERE tags LIKE ?;"
-    table  = [["ID #", "File Path", "Description", "Tags"]]
+    cursor  = db.cursor()
+    table   = [["IMID", "File Path", "Description"]]
+    results = sengine.search(searchterm, db)[:conf['results']]
 
-    cursor.execute(query, ('%' + searchterm.upper() + '%',))
-    results = cursor.fetchall()
-    for row in results:
-        table.append([row[0], row[1], row[2], row[3]])
-    print(tabulate(table, headers='firstrow', tablefmt='grid', maxcolwidths=[None, 30, 50, 15]))
+    if results:
+        for image in results:
+            record = cursor.execute("SELECT imid, filename, desc FROM images WHERE imid=?;", 
+                                    (image,)).fetchone()
+            table.append([record[0], record[1], record[2]])
+        print(tabulate(table, headers='firstrow', tablefmt='grid', maxcolwidths=[None, 30, 50]))
     quit()
     return
 
@@ -288,7 +295,8 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--scan", action="store_true", help="Scan for updates to the database")
     parser.add_argument("-f", "--find", help="Image search")
     parser.add_argument("-p", "--purge", action="store_true", help="Iterate through the database and purge records for files which no longer exist.")
-    parser.add_argument("-y", "--sync", action="store_true", help="Perform a full database sync (purge and scan)")
+    parser.add_argument("-i", "--index", action="store_true", help="Refresh the search index")
+    parser.add_argument("-y", "--sync", action="store_true", help="Perform a full database sync (purge, scan, and re-index)")
     parser.add_argument("-d", "--draw", action="store_true", help="Draw a random image out of the database. For fun!")
     args = parser.parse_args()
     logging.info("INIT - Argument Parsing")
@@ -299,19 +307,26 @@ if __name__ == "__main__":
         aRoot = args.album_root
     if args.scan:
         scanDB(db, aRoot)
+        print("HAVE A NICE DAY 😎")
     if args.find:
         searchDB(db, args.find)
     if args.purge:
         purgeDB(db)
+        print("HAVE A NICE DAY 😎")
+        quit()
+    if args.index:
+        sengine.crawler(db)
+        print("HAVE A NICE DAY 😎")
         quit()
     if args.sync:
-        logging.info("FULL SYNC - Will perform a purge followed by a scan.")
+        logging.info("FULL SYNC - Will perform a purge, scan, and re-index.")
         purgeDB(db)
         scanDB(db, aRoot)
+        sengine.crawler(db)
+        print("SYNC COMPLETE. HAVE A NICE DAY 😎")
     if args.draw:
         draw(db)
-    else:
-        print("No parameter specified.")
-
+    
+    db.close()
     quit()
 
