@@ -23,13 +23,13 @@ def crawler(db):
     
     cursor.execute("SELECT word, linked FROM crawler")
     cTable = {row[0]: json.loads(row[1]) for row in cursor.fetchall()}
-    cursor.execute("SELECT imid, filename, desc, tags, wCount FROM images;")
+    cursor.execute("SELECT imid, filename, desc, tags, wCount, freeText FROM images;")
     images = cursor.fetchall()
     tImages = len(images)
 
     for i, image in enumerate(images, 1):
         imid    = str(image[0])
-        rawText = f"{image[1]} {image[2]} {image[3]}"
+        rawText = f"{image[1]} {image[2]} {image[3]} {image[5]}"
         sstr    = normalize(rawText).split(' ')
         wCount  = len(sstr)
         
