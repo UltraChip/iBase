@@ -11,3 +11,4 @@ Below are the options available to edit in iBase.conf. The file itself is essent
 | llmHost   | localhost:11434    | The host and port of your Ollama server. |
 | llmModel  | gemma3:12b         | The LLM model to use for scanning. | 
 | llmTries  | 3                  | The number of times iBase will attempt to call Ollama for a given image before erroring out and moving on. |
+| VERSION   | 1.0.1              | The current version of iBase. This is not used by the program, but may be useful for tracking purposes. |
