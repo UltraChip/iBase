@@ -9,9 +9,10 @@ In addition to tracking other image properties (such as detected duplicate image
 ### Prerequisites
 - Python 3
 - SQLite3
-- An accessible Ollama server equipped with a model that can process image input, such as Gemini 3
+- An accessible Ollama server equipped with a model that can process image input, such as gemma3
 - The Ollama Python module
 - The tabulate Python module
+- The simple-term-menu Python module
 
 ### Installation
 1. Clone this repository to your local computer.
