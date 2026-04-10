@@ -9,7 +9,7 @@
 import sqlite3
 import datetime
 import os
-import sengine
+import lib.sengine as sengine
 from time import sleep
 from tkinter import Image
 from simple_term_menu import TerminalMenu
@@ -105,7 +105,8 @@ def buildRecordLines(records):
     except:
         width = 98
 
-    for record in records:                  # This initial loop just calculates what the column
+    for record in records:     
+        print(record)             # This initial loop just calculates what the column
         if len(str(record[0])) > colOne:    # widths should be. 
             colOne = len(str(record[0]))
         if len(record[1]) > colTwo:
@@ -121,9 +122,11 @@ def buildRecordLines(records):
             filename = f" {record[1][:(colTwo-1)]}"
         else:
             filename = f" {record[1]}" + " "*(colTwo-(len(record[1]))+1)
-
-    
-
+        if len(record[2]) >= colThree:
+            desc = f" {record[2][:(colThree-1)]}"
+        else:
+            desc = f" {record[2]}"
+        recordLines.append(f"{imid}{filename}{desc}") 
     return recordLines
 
 def buildHeader(content, delim="="):
