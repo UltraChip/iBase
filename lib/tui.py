@@ -25,8 +25,9 @@ def mainmenu(db, conf):
         buildHeader(f"iBase version {conf['VERSION']}")
         options = [ "Direct IMID lookup",
                     "Search by keyword",
+                    "",
                     "Quit" ]
-        menu = TerminalMenu(options)
+        menu = TerminalMenu(options, skip_empty_entries=True)
         choice = menu.show()
         if choice == 0:
             imid = input("Which IMID? ")
@@ -34,14 +35,13 @@ def mainmenu(db, conf):
         elif choice == 1:
             searchTerm = input("Search term: ")
             searchMenu(db, searchTerm, conf)
-        elif choice == 2:
+        elif choice == 3:
             return
 
 def imidMenu(db, imid):
     # TUI for displaying a single record based on IMID.
     cursor = db.cursor()
-    record = cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize" /
-                            " FROM images WHERE imid=?;", (imid,)).fetchone()
+    record = cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize FROM images WHERE imid=?;", (imid,)).fetchone()
     
     if record:
         while True:
@@ -49,8 +49,10 @@ def imidMenu(db, imid):
             printRecord(record)
             buildHeader(f"IMID Lookup")
             options = [ "Open image",
+                        "Add/edit description",
+                        "",
                         "Go back" ]
-            menu = TerminalMenu(options)
+            menu = TerminalMenu(options, skip_empty_entries=True)
             choice = menu.show()
             if choice == 0:
                 try:
@@ -58,7 +60,7 @@ def imidMenu(db, imid):
                         pic.show()
                 except:
                     pass
-            elif choice == 1:
+            elif choice == 3:
                 cursor.close()
                 return
     else:
@@ -77,14 +79,16 @@ def searchMenu(db, searchTerm, conf):
             fullRecord = cursor.execute("SELECT imid, filename, desc FROM images WHERE imid = ?",
                                         (result,)).fetchone()
             records.append(fullRecord)
-        menuLines = buildRecordLines(fullRecord)
+        menuLines = buildRecordLines(records)
+        menuLines.append("")
         menuLines.append("Go back")
 
         while True:
             os.system('clear')
-            menu = TerminalMenu(menuLines)
+            buildHeader("Search Results")
+            menu = TerminalMenu(menuLines, skip_empty_entries=True)
             choice = menu.show()
-            if choice == len(menuLines):
+            if choice == len(menuLines)-1:
                 cursor.close()
                 return
             else:
@@ -105,8 +109,7 @@ def buildRecordLines(records):
     except:
         width = 98
 
-    for record in records:     
-        print(record)             # This initial loop just calculates what the column
+    for record in records:                  # This initial loop just calculates what the column
         if len(str(record[0])) > colOne:    # widths should be. 
             colOne = len(str(record[0]))
         if len(record[1]) > colTwo:
@@ -114,19 +117,14 @@ def buildRecordLines(records):
                 colTwo = floor(width / 2)
             else:
                 colTwo = len(record[1])
-        colThree = width - (colOne + colTwo + 3)
+        colThree = width - (colOne + colTwo + 10)
     
     for record in records:
-        imid = f" {record[0]}" + " "*(colOne-(len(str(record[0]))+1))
-        if len(record[1]) >= colTwo:
-            filename = f" {record[1][:(colTwo-1)]}"
-        else:
-            filename = f" {record[1]}" + " "*(colTwo-(len(record[1]))+1)
-        if len(record[2]) >= colThree:
-            desc = f" {record[2][:(colThree-1)]}"
-        else:
-            desc = f" {record[2]}"
-        recordLines.append(f"{imid}{filename}{desc}") 
+        imid  = str(record[0]).strip()
+        fName = record[1].strip()
+        desc  = record[2].strip()
+        line  = f" {imid:>{colOne}.{colOne}} : {fName:<{colTwo}.{colTwo}} : {desc:<{colThree}.{colThree}}"
+        recordLines.append(line)
     return recordLines
 
 def buildHeader(content, delim="="):
@@ -136,7 +134,8 @@ def buildHeader(content, delim="="):
     except:
         width = 100
     padCount = width - (len(content) + 4)
-    print(f"== {content} " + (delim * padCount))
+    print(f"\n" * 5)
+    print(f"== {content} " + (delim*padCount) + "\n")
     return
 
 def printRecord(record):
