@@ -9,9 +9,10 @@ In addition to tracking other image properties (such as detected duplicate image
 ### Prerequisites
 - Python 3
 - SQLite3
-- An accessible Ollama server equipped with a model that can process image input, such as Gemini 3
+- An accessible Ollama server equipped with a model that can process image input, such as gemma3
 - The Ollama Python module
 - The tabulate Python module
+- The simple-term-menu Python module
 
 ### Installation
 1. Clone this repository to your local computer.
@@ -20,30 +21,35 @@ In addition to tracking other image properties (such as detected duplicate image
 - "llmHost" to point to your Ollama server, and
 - "llmModel" to point to a model that can process image input.
 
-### How to Use
+### First Use
 The first thing you'll probably want to do is run an initial scan of your images in order to generate the actual database. You can do this by running:
 
     $ python3 ibase.py -s
 
 Be aware that if you have a lot of images the scan could take an **EXTREMELY LONG TIME**. For reference: I had about 76,000 pictures and the initial scan took about 5 days. But once the scan is complete you should have a fully populated sqlite3 database with information about all your pictures. Once the initial database is populated re-running the scan will add any new images that you've added since the last scan.
 
-For basic keyword searches of the database you can use iBase itself with the -f parameter. For example, to search for images that contain apples you could enter:
+After the initial scan, you'll likely want to build the search index. This can be accomplished by either performing a full sync (see below) or by running:
 
-    $ python3 ibase.py -f apple
-
-The search is case-insensitive.
-
-For more sophisticated queries you are free to search the database directly with sqlite3's native command line utility or any other DB utility you choose.
+    $ python3 ibase.py -i
 
 Eventually, you are likely going to delete or move images in your album. When this happens, you will want to run a purge operation on the database to remove records which are no longer accurate.
 
     $ python3 ibase.py -p
 
-There will be many times when you'll want to perform a complete synchronization of the database. In other words, purge records for no-longer-present files while also adding records for new ones. This can be accomplished with iBase's sYnc function;
+There will be many times when you'll want to perform a complete synchronization of the database. In other words, purge records for no-longer-present files,add records for new files, and rebuild the search index to account for all the changes. This can be accomplished with iBase's sYnc function;
 
     $ python3 ibase.py -y
 
 For a full rundown on the rest of the command-line arguments available to you look at the [complete arguments table](docs/args.md) in the docs directory.
+
+### Using the TUI for image search and lookup
+If you run iBase without any command line parameters like so:
+
+    $ python3 ibase.py
+
+...you will be presented with a TUI menu that allows you to easily look up images, either directly if you happen to know the image's IMID number or via search engine. 
+
+The TUI will allow you to view the key metadata associated with the image, add additional notes to the database, and open up the image itself for viewing.
 
 ### Database Schema
 Full details on the database schema can be found in [docs/database.md](docs/database.md).

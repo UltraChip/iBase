@@ -19,10 +19,12 @@ import argparse
 import logging
 import logging.config
 import random
-import lib.sengine as sengine
-from lib.configManager import loadConfig
 from tabulate import tabulate
 from PIL import Image
+
+import lib.sengine as sengine
+import lib.tui as tui
+from lib.configManager import loadConfig
 
 cfile = './iBase.conf'
 
@@ -203,15 +205,12 @@ def parseDate(lfile):
 def searchDB(db, searchterm):
     # Search the database for images that match the search term
     cursor  = db.cursor()
-    table   = [["IMID", "File Path", "Description"]]
     results = sengine.search(searchterm, db)[:conf['results']]
 
     if results:
-        for image in results:
-            record = cursor.execute("SELECT imid, filename, desc FROM images WHERE imid=?;", 
-                                    (image,)).fetchone()
-            table.append([record[0], record[1], record[2]])
-        print(tabulate(table, headers='firstrow', tablefmt='grid', maxcolwidths=[None, 30, 50]))
+        table = tui.buildRecordLines(results)
+        for record in table:
+            print(record)
     quit()
     return
 
@@ -223,22 +222,11 @@ def draw(db):
     total = cursor.fetchone()[0]
 
     pick = random.randint(1, total)
-    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize FROM images " \
-                   "ORDER BY imid LIMIT 1 OFFSET (? - 1);", (pick,))
+    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize, " \
+                   "freeText FROM images ORDER BY imid LIMIT 1 OFFSET (? - 1);", (pick,))
     record = cursor.fetchone()
-    try:
-        tstamp = datetime.datetime.fromtimestamp(float(record[2])).strftime('%B %d, %Y at %H:%M:%S')
-    except:
-        tstamp = ""
+    tui.printRecord(record)
 
-    print(f"\n\nIMID      #{record[0]}\n")
-    print(f"Filename:   {record[1]}")
-    print(f"File Size:  {(record[8]/1024):.2f} KB")
-    print(f"Resolution: {record[6]} x {record[7]}\n")
-    print(f"Suspected Day of Shot: {tstamp}")
-    print(f"Suspected Duplicates:  {record[3]}\n")
-    print(f"Description:\n    {record[4]}\n")
-    print(f"Search tags: {record[5]}\n")
     try:
         with Image.open(record[1]) as pic:
             pic.show()
@@ -305,27 +293,29 @@ if __name__ == "__main__":
     # MAIN
     if args.album_root:
         aRoot = args.album_root
-    if args.scan:
+    elif args.scan:
         scanDB(db, aRoot)
         print("HAVE A NICE DAY 😎")
-    if args.find:
+    elif args.find:
         searchDB(db, args.find)
-    if args.purge:
+    elif args.purge:
         purgeDB(db)
         print("HAVE A NICE DAY 😎")
         quit()
-    if args.index:
+    elif args.index:
         sengine.crawler(db)
         print("HAVE A NICE DAY 😎")
         quit()
-    if args.sync:
+    elif args.sync:
         logging.info("FULL SYNC - Will perform a purge, scan, and re-index.")
         purgeDB(db)
         scanDB(db, aRoot)
         sengine.crawler(db)
         print("SYNC COMPLETE. HAVE A NICE DAY 😎")
-    if args.draw:
+    elif args.draw:
         draw(db)
+    else:
+        tui.mainmenu(db, conf)
     
     db.close()
     quit()
