@@ -41,7 +41,9 @@ def mainmenu(db, conf):
 def imidMenu(db, imid):
     # TUI for displaying a single record based on IMID.
     cursor = db.cursor()
-    record = cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize FROM images WHERE imid=?;", (imid,)).fetchone()
+    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize, " \
+                   "freeText FROM images WHERE imid=?;", (imid,))
+    record = list(cursor.fetchone())
     
     if record:
         while True:
@@ -60,6 +62,11 @@ def imidMenu(db, imid):
                         pic.show()
                 except:
                     pass
+            elif choice == 1:
+                notes = input(f"\nEnter additional notes: ")
+                cursor.execute("UPDATE images SET freeText=? WHERE imid=?;", (notes, imid))
+                record[9] = notes
+                db.commit()
             elif choice == 3:
                 cursor.close()
                 return
@@ -139,8 +146,9 @@ def buildHeader(content, delim="="):
     return
 
 def printRecord(record):
-    # Prints the information from a single database record. Assumes record is a list of ALL columns
-    # in the images table, in order.
+    # Prints the information from a single database record. Assumes record is a list containing 
+    # the imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize, and freeText fields IN
+    # THAT ORDER.
     try:
         tstamp = datetime.datetime.fromtimestamp(float(record[2])).strftime('%B %d, %Y at %H:%M:%S')
     except:
@@ -153,6 +161,7 @@ def printRecord(record):
     print(f"Suspected Day of Shot: {tstamp}")
     print(f"Suspected Duplicates:  {record[3]}\n")
     print(f"Description:\n    {record[4]}\n")
+    print(f"Additional Notes:\n    {record[9]}\n")
     print(f"Search tags: {record[5]}\n")
 
     return

@@ -222,8 +222,8 @@ def draw(db):
     total = cursor.fetchone()[0]
 
     pick = random.randint(1, total)
-    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize FROM images " \
-                   "ORDER BY imid LIMIT 1 OFFSET (? - 1);", (pick,))
+    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize, " \
+                   "freeText FROM images ORDER BY imid LIMIT 1 OFFSET (? - 1);", (pick,))
     record = cursor.fetchone()
     tui.printRecord(record)
 
