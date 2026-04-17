@@ -24,6 +24,7 @@ from PIL import Image
 
 import lib.sengine as sengine
 import lib.tui as tui
+import lib.parseDate as pd
 from lib.configManager import loadConfig
 
 cfile = './iBase.conf'
@@ -107,7 +108,7 @@ def scanDB(db, aRoot):
         if i % 100 == 0:
             db.commit()
 
-        susDos = parseDate(file)
+        susDos = pd.parseDate(file)
         fSize  = os.path.getsize(file)
 
         try:
@@ -182,25 +183,6 @@ def findDupes(h, db):
             imids = f"{imids}, {result[0]}"
 
     return imids
-
-def parseDate(lfile):
-    # If the filename has a recognizable naming convention based on the date/time the photo was
-    # taken, parse the timestamp out and note it down as the "Suspected Day of Shot (DoS)".
-    file = os.path.basename(lfile)
-    try:
-        if file[:4] == "PXL_":
-            year   = int(file[4:8])
-            month  = int(file[8:10])
-            day    = int(file[10:12])
-            hour   = int(file[13:15])
-            minute = int(file[15:17])
-
-            dto = datetime.datetime(year, month, day, hour, minute, tzinfo=datetime.timezone.utc)
-            tstamp = time.mktime(dto.timetuple())
-            return str(tstamp)
-    except:
-        logging.error(f"parseDate failure on {lfile}. Leaving susDOS blank.")
-    return ""
 
 def searchDB(db, searchterm):
     # Search the database for images that match the search term
