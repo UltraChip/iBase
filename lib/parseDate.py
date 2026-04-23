@@ -38,7 +38,7 @@ def parseDate(fName):
         dto    = datetime(iList[0], iList[1], iList[2], iList[3], iList[4])
         tstamp = time.mktime(dto.timetuple())
     except Exception as e:
-        logging.info(f"parseDate failure on {fName}. Leaving susDOS blank.")
+        #logging.info(f"parseDate failure on {fName}. Leaving susDOS blank.")
         tstamp = ""
 
     return str(tstamp)
