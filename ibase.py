@@ -13,13 +13,9 @@ import shutil
 import sqlite3
 import ollama
 import hashlib
-import datetime
-import time
 import argparse
 import logging
 import logging.config
-import random
-from tabulate import tabulate
 from PIL import Image
 
 import lib.sengine as sengine
@@ -196,28 +192,6 @@ def searchDB(db, searchterm):
     quit()
     return
 
-def draw(db):
-    # Draw a random image from the database
-    cursor = db.cursor()
-    
-    cursor.execute("SELECT COUNT(*) FROM images;")
-    total = cursor.fetchone()[0]
-
-    pick = random.randint(1, total)
-    cursor.execute("SELECT imid, filename, susDOS, dupeOf, desc, tags, width, height, fSize, " \
-                   "freeText FROM images ORDER BY imid LIMIT 1 OFFSET (? - 1);", (pick,))
-    record = cursor.fetchone()
-    tui.printRecord(record)
-
-    try:
-        with Image.open(record[1]) as pic:
-            pic.show()
-    except:
-        pass
-
-    quit()
-    return
-
 def purgeDB(db):
     # Iterates through the database and purges the record of any file which no longer exists.
     logging.info("PURGE MODE")
@@ -297,7 +271,7 @@ if __name__ == "__main__":
         sengine.crawler(db)
         print("SYNC COMPLETE. HAVE A NICE DAY 😎")
     elif args.draw:
-        draw(db)
+        tui.draw(db)
     else:
         tui.mainmenu(db, conf, version)
     

@@ -9,6 +9,7 @@
 import sqlite3
 import datetime
 import os
+import random
 import lib.sengine as sengine
 from time import sleep
 from tkinter import Image
@@ -25,6 +26,7 @@ def mainmenu(db, conf, vers):
         buildHeader(f"iBase version {vers}")
         options = [ "Direct IMID lookup",
                     "Search by keyword",
+                    "Random draw",
                     "",
                     "Quit" ]
         menu = TerminalMenu(options, skip_empty_entries=True)
@@ -35,7 +37,9 @@ def mainmenu(db, conf, vers):
         elif choice == 1:
             searchTerm = input("Search term: ")
             searchMenu(db, searchTerm, conf)
-        elif choice == 3:
+        elif choice == 2:
+            draw(db)
+        elif choice == 4:
             return
 
 def imidMenu(db, imid):
@@ -164,6 +168,19 @@ def printRecord(record):
     print(f"Additional Notes:\n    {record[9]}\n")
     print(f"Search tags: {record[5]}\n")
 
+    return
+
+def draw(db):
+    # Draw a random image from the database
+    cursor = db.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM images;")
+    total = cursor.fetchone()[0]
+
+    pick = random.randint(1, total)
+    cursor.execute("SELECT imid FROM images ORDER BY imid LIMIT 1 OFFSET (? - 1);", (pick,))
+    imid = cursor.fetchone()[0]
+    imidMenu(db, imid)
     return
 
 
