@@ -241,6 +241,8 @@ if __name__ == "__main__":
     # INITIALIZATION
     conf  = loadConfig(cfile)
     aRoot = conf['albumRoot']
+    with open("./VERSION", "r") as f:
+        version = f.read()
 
     Image.MAX_IMAGE_PIXELS = None  # Disables PIL's compression bomb detection
 
@@ -297,7 +299,7 @@ if __name__ == "__main__":
     elif args.draw:
         draw(db)
     else:
-        tui.mainmenu(db, conf)
+        tui.mainmenu(db, conf, version)
     
     db.close()
     quit()

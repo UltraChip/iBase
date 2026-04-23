@@ -18,11 +18,11 @@ from math import floor
 
 
 # FUNCTIONS
-def mainmenu(db, conf):
+def mainmenu(db, conf, vers):
     # Main TUI menu.
     while True:
         os.system('clear')
-        buildHeader(f"iBase version {conf['VERSION']}")
+        buildHeader(f"iBase version {vers}")
         options = [ "Direct IMID lookup",
                     "Search by keyword",
                     "",

@@ -9,6 +9,7 @@
 import sqlite3
 import re
 import json
+import logging
 from math import log
 
 blacklist = [ ' ', 'THE', 'A', 'AN', 'OF', 'IN', 'ON', 'IS', 'AND', 'OR', 'JPG', 'JPEG', 'PNG',
@@ -18,7 +19,7 @@ blacklist = [ ' ', 'THE', 'A', 'AN', 'OF', 'IN', 'ON', 'IS', 'AND', 'OR', 'JPG',
 # FUNCTIONS
 def crawler(db):
     # Crawler function to index images in the db.
-    print("INDEX MODE")
+    logging.info("INDEX MODE")
     cursor = db.cursor()
     
     cursor.execute("SELECT word, linked FROM crawler")
@@ -55,7 +56,7 @@ def crawler(db):
     
     db.commit()
     cursor.close()
-    print("INDEXING COMPLETE")
+    logging.info("INDEXING COMPLETE")
     return
 
 def search(query, db):
