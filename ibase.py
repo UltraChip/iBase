@@ -14,6 +14,7 @@ import sqlite3
 import ollama
 import hashlib
 import argparse
+import json
 import logging
 import logging.config
 from PIL import Image
@@ -202,10 +203,12 @@ def purgeDB(db):
 
     cursor.execute("SELECT imid, filename FROM images;")
     results = cursor.fetchall()
+
     for row in results:
         if not os.path.exists(row[1]):
             cursor.execute("DELETE FROM images WHERE imid=?;", (row[0],))
             logging.info(f"Removed IMID #{row[0]:<7} ({row[1]})")
+
     cursor.close()
     db.commit()
     logging.info("PURGE COMPLETE")
