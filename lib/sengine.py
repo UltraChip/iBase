@@ -25,8 +25,8 @@ def crawler(db):
     cursor.execute("SELECT word, linked FROM crawler")
     cTable = {row[0]: json.loads(row[1]) for row in cursor.fetchall()}
     cursor.execute("SELECT imid, filename, desc, tags, wCount, freeText FROM images;")
-    images = cursor.fetchall()
-    tImages = len(images)
+    images   = cursor.fetchall()
+    tImages  = len(images)
 
     for i, image in enumerate(images, 1):
         imid    = str(image[0])
@@ -64,23 +64,34 @@ def search(query, db):
     # ordered from most to least relevant.
     cursor  = db.cursor()
     sTable  = {}
+    rmList  = []
     terms   = normalize(query).split(' ')
     tImages = cursor.execute("SELECT COUNT(*) FROM images;").fetchone()[0]
     qWord   = "SELECT linked FROM crawler WHERE word=?;"
     qCount  = "SELECT wCount FROM images  WHERE imid=?;"
 
     for term in terms:
+        rmList = []
         if term not in blacklist:
             dLinked = cursor.execute(qWord, (term,)).fetchone()
             if dLinked:
                 linked = json.loads(dLinked[0])
                 for image, count in linked.items():
-                    wCount = cursor.execute(qCount, (image,)).fetchone()[0]
-                    tf     = linked[image] / wCount
-                    idf    = log(tImages / len(linked))
-                    sTable[image] = sTable.get(image, 0) + (tf * idf)
-
+                    try:
+                        wCount = cursor.execute(qCount, (image,)).fetchone()[0]
+                        tf     = linked[image] / wCount
+                        idf    = log(tImages / len(linked))
+                        sTable[image] = sTable.get(image, 0) + (tf * idf)
+                    except TypeError:
+                        rmList.append(image)
+                if len(rmList) > 0:       # Automatically cleans up any dead IMID references in the
+                    for imid in rmList:   # search index as they're discovered. MUCH faster than
+                        del linked[imid]  # trying to purge dead references in bulk.
+                    cursor.execute("UPDATE crawler SET linked = ? WHERE word=?", 
+                                   (json.dumps(linked), term))
+    
     cursor.close()
+    db.commit()
     return sorted(sTable, key=sTable.get, reverse=True)
 
 def normalize(content):
